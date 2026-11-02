@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ZIZO — editor for badrola</title>
+<link rel="icon" href="avatar.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700&family=Cairo:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#f1d27a;
+    --gold-deep:#c9962b;
+    --glass:rgba(12,10,6,.46);
+    --glass-border:rgba(241,210,122,.22);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Outfit','Cairo',sans-serif;background:#000;color:#fff;overflow:hidden}
+
+  /* ===== الخلفية ===== */
+  #bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;
+      filter:blur(3px) brightness(.62) saturate(1.1);transform:scale(1.06)}
+  .vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+      background:radial-gradient(ellipse at center,rgba(0,0,0,0) 30%,rgba(0,0,0,.78) 100%),
+                 linear-gradient(to top,rgba(201,150,43,.14),transparent 40%)}
+  #fx{position:fixed;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
+  .flash{position:fixed;inset:0;z-index:3;pointer-events:none;background:rgba(255,236,170,.0);transition:background .08s}
+  .flash.on{background:rgba(255,236,170,.13)}
+
+  /* ===== شاشة الترحيب ===== */
+  #welcome{
+    position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    background:radial-gradient(circle at center,rgba(30,22,6,.82),rgba(0,0,0,.95));
+    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    cursor:pointer;text-align:center;padding:24px;
+    transition:opacity .9s ease,visibility .9s,transform .9s ease;
+  }
+  #welcome.hide{opacity:0;visibility:hidden;transform:scale(1.12)}
+  #welcome .logo{
+    width:min(190px,46vw);aspect-ratio:1;border-radius:50%;object-fit:cover;
+    border:2px solid var(--glass-border);
+    box-shadow:0 0 60px rgba(241,210,122,.35),0 0 140px rgba(201,150,43,.25);
+    animation:float 4s ease-in-out infinite, bolt 5s linear infinite;
+  }
+  #welcome h1{
+    font-size:clamp(40px,9vw,76px);font-weight:700;letter-spacing:.08em;
+    background:linear-gradient(180deg,#fff6d6,var(--gold) 45%,var(--gold-deep));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 22px rgba(241,210,122,.45));
+  }
+  #welcome p{font-family:'Cairo',sans-serif;font-size:17px;color:#e9dcb0}
+  #welcome .tap{
+    margin-top:10px;font-family:'Cairo',sans-serif;font-size:14px;color:var(--gold);
+    border:1px solid var(--glass-border);padding:9px 22px;border-radius:999px;
+    background:rgba(241,210,122,.06);animation:pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes float{50%{transform:translateY(-10px)}}
+  @keyframes pulse{50%{opacity:.4}}
+  @keyframes bolt{0%,92%,100%{box-shadow:0 0 60px rgba(241,210,122,.35),0 0 140px rgba(201,150,43,.25)}
+                  94%{box-shadow:0 0 90px rgba(255,244,200,.9),0 0 220px rgba(241,210,122,.7)}
+                  96%{box-shadow:0 0 60px rgba(241,210,122,.35),0 0 140px rgba(201,150,43,.25)}}
+
+  /* ===== الكارت ===== */
+  main{position:relative;z-index:5;height:100%;display:flex;align-items:center;justify-content:center;padding:20px}
+  .card{
+    width:min(560px,100%);padding:34px 24px 30px;text-align:center;
+    background:var(--glass);border:1px solid var(--glass-border);border-radius:28px;
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 25px 70px rgba(0,0,0,.55),inset 0 0 40px rgba(241,210,122,.04);
+    opacity:0;transform:translateY(24px) scale(.97);
+    transition:opacity .9s .35s ease,transform .9s .35s ease;
+  }
+  body.in .card{opacity:1;transform:none}
+  .avatar{
+    width:128px;height:128px;border-radius:50%;margin:0 auto 16px;object-fit:cover;display:block;
+    border:2px solid rgba(241,210,122,.65);
+    box-shadow:0 0 34px rgba(241,210,122,.45),0 0 90px rgba(201,150,43,.22);
+  }
+  .name{
+    font-size:46px;font-weight:700;line-height:1.1;letter-spacing:.05em;
+    background:linear-gradient(180deg,#fff6d6,var(--gold) 50%,var(--gold-deep));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 16px rgba(241,210,122,.35));
+  }
+  .role{margin-top:8px;font-size:17px;font-weight:500;color:#e9dcb0;direction:ltr;letter-spacing:.04em}
+
+  .socials{display:flex;justify-content:center;gap:16px;margin-top:30px;direction:ltr}
+  .socials a{
+    width:54px;height:54px;padding:13px;border-radius:16px;display:grid;place-items:center;
+    color:var(--gold);background:rgba(241,210,122,.07);border:1px solid var(--glass-border);
+    transition:transform .2s ease,box-shadow .2s ease,color .2s ease,background .2s ease;
+  }
+  .socials a svg{width:100%;height:100%;fill:currentColor}
+  .socials a:hover,.socials a:focus-visible{
+    transform:translateY(-5px);color:#fff;background:rgba(241,210,122,.14);outline:none;
+    box-shadow:0 0 26px var(--c,rgba(241,210,122,.6));
+  }
+  .yt{--c:rgba(255,40,40,.65)} .tt{--c:rgba(37,244,238,.6)} .dc{--c:rgba(88,101,242,.75)}
+
+  .discord-tag{
+    margin-top:22px;font-size:14px;color:#e9dcb0;direction:ltr;display:inline-flex;gap:8px;cursor:pointer;
+    background:rgba(255,255,255,.05);border:1px solid var(--glass-border);padding:7px 16px;border-radius:999px;
+    transition:background .2s;
+  }
+  .discord-tag:hover{background:rgba(88,101,242,.25)}
+  .discord-tag b{color:#fff;font-weight:500}
+
+  @media (max-width:520px){
+    .name{font-size:38px}.socials{gap:12px}.socials a{width:50px;height:50px;padding:12px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #welcome .logo,#welcome .tap{animation:none}*{transition-duration:.01s!important}
+  }
+</style>
+</head>
+<body>
+
+<video id="bg" src="background.mp4" autoplay muted loop playsinline></video>
+<div class="vignette"></div>
+<canvas id="fx"></canvas>
+<div class="flash" id="flash"></div>
+
+<div id="welcome" role="button" tabindex="0" aria-label="Enter site">
+  <img class="logo" src="avatar.webp" alt="ZIZO">
+  <h1>Welcome</h1>
+  <p>أهلاً بيك في عالم ZIZO</p>
+  <span class="tap">اضغط للدخول</span>
+</div>
+
+<main>
+  <section class="card">
+    <img class="avatar" src="avatar.webp" alt="ZIZO">
+    <h2 class="name">ZIZO</h2>
+    <p class="role">editor for badrola</p>
+
+    <div class="socials">
+      <a class="yt" href="https://youtube.com/@zizo_mo-22?si=4XMgOF_lvJ9IZOBF" target="_blank" rel="noopener" aria-label="YouTube">
+        <svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.6 15.6V8.4l6.2 3.6-6.2 3.6z"/></svg>
+      </a>
+      <a class="tt" href="https://www.tiktok.com/@cliprs_badrola1?_r=1&_t=ZS-9B4u5X77WkC" target="_blank" rel="noopener" aria-label="TikTok">
+        <svg viewBox="0 0 24 24"><path d="M19.6 6.7a4.8 4.8 0 0 1-3.8-4.2V2h-3.4v13.4a2.9 2.9 0 1 1-2-2.8V9.1a6.3 6.3 0 1 0 5.4 6.2V8.9a8.2 8.2 0 0 0 4.8 1.5V7a4.8 4.8 0 0 1 0-.3z"/></svg>
+      </a>
+      <a class="dc" href="https://discord.com/users/1563636868745011254" target="_blank" rel="noopener" aria-label="Discord">
+        <svg viewBox="0 0 24 24"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.2.5a18.3 18.3 0 0 0-6.4 0L8.6 3a19.8 19.8 0 0 0-4.9 1.4C.6 9-.3 13.5.1 18a19.9 19.9 0 0 0 6 3l1.3-2.1a12.9 12.9 0 0 1-2-1l.5-.4a14.2 14.2 0 0 0 12.2 0l.5.4c-.6.4-1.3.7-2 1l1.3 2.1a19.9 19.9 0 0 0 6-3c.5-5.2-.8-9.7-3.6-13.6zM8.1 15.3c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.1 1.1 2.1 2.4-.9 2.4-2.1 2.4zm7.8 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.1 1.1 2.1 2.4-.9 2.4-2.1 2.4z"/></svg>
+      </a>
+    </div>
+
+    <div class="discord-tag" id="dcTag" title="انسخ يوزر ديسكورد">Discord: <b>zizo_7897</b></div>
+  </section>
+</main>
+
+<script>
+(function(){
+  var welcome=document.getElementById('welcome'), bg=document.getElementById('bg'),
+      flash=document.getElementById('flash'), cv=document.getElementById('fx'), ctx=cv.getContext('2d');
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function enter(){
+    welcome.classList.add('hide'); document.body.classList.add('in');
+    bg.play().catch(function(){}); strike();
+  }
+  welcome.addEventListener('click',enter);
+  welcome.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' ')enter();});
+
+  document.getElementById('dcTag').addEventListener('click',function(){
+    var el=this.querySelector('b'),old=el.textContent;
+    if(navigator.clipboard)navigator.clipboard.writeText('zizo_7897').catch(function(){});
+    el.textContent='Copied';setTimeout(function(){el.textContent=old},1200);
+  });
+
+  // ===== Canvas: شرارات دهبية + صواعق =====
+  var W,H,dpr=Math.min(devicePixelRatio||1,2),sparks=[],bolts=[];
+  function resize(){W=innerWidth;H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);}
+  resize();addEventListener('resize',resize);
+
+  function spark(init){
+    return {x:Math.random()*W,y:init?Math.random()*H:H+10,r:Math.random()*1.8+.4,
+            v:Math.random()*.6+.25,d:(Math.random()-.5)*.4,a:Math.random()*.7+.2,t:Math.random()*6};
+  }
+  var N=reduce?0:Math.min(70,Math.floor(W/18));
+  for(var i=0;i<N;i++)sparks.push(spark(true));
+
+  function strike(){
+    if(reduce)return;
+    var x=Math.random()*W*.8+W*.1,y=0,pts=[[x,y]],tx=x;
+    var endY=H*(.35+Math.random()*.4);
+    while(y<endY){y+=Math.random()*38+18;tx+=(Math.random()-.5)*70;pts.push([tx,y]);}
+    var branch=[];
+    for(var k=2;k<pts.length-1;k++)if(Math.random()<.4){
+      var b=[pts[k]],bx=pts[k][0],by=pts[k][1],dir=Math.random()<.5?-1:1;
+      for(var j=0;j<4;j++){bx+=dir*(Math.random()*30+10);by+=Math.random()*28+8;b.push([bx,by]);}
+      branch.push(b);
+    }
+    bolts.push({main:pts,branch:branch,life:1});
+    flash.classList.add('on');setTimeout(function(){flash.classList.remove('on')},90);
+    setTimeout(function(){flash.classList.add('on');setTimeout(function(){flash.classList.remove('on')},60)},170);
+  }
+  function path(p){ctx.beginPath();ctx.moveTo(p[0][0],p[0][1]);for(var i=1;i<p.length;i++)ctx.lineTo(p[i][0],p[i][1]);ctx.stroke();}
+
+  function loop(){
+    ctx.clearRect(0,0,W,H);
+    sparks.forEach(function(s,i){
+      s.y-=s.v;s.x+=s.d+Math.sin(s.t+=.02)*.25;
+      if(s.y<-10)sparks[i]=spark(false);
+      ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,6.283);
+      ctx.fillStyle='rgba(241,210,122,'+(s.a*(.6+.4*Math.sin(s.t*2)))+')';
+      ctx.shadowColor='rgba(241,210,122,.9)';ctx.shadowBlur=8;ctx.fill();
+    });
+    for(var i=bolts.length-1;i>=0;i--){
+      var b=bolts[i];
+      ctx.shadowColor='rgba(255,226,140,1)';ctx.shadowBlur=22;
+      ctx.strokeStyle='rgba(255,246,214,'+b.life+')';ctx.lineWidth=2.2;path(b.main);
+      ctx.lineWidth=1;ctx.strokeStyle='rgba(241,210,122,'+(b.life*.8)+')';
+      b.branch.forEach(path);
+      b.life-=.045;if(b.life<=0)bolts.splice(i,1);
+    }
+    requestAnimationFrame(loop);
+  }
+  loop();
+  if(!reduce)(function auto(){setTimeout(function(){if(document.body.classList.contains('in'))strike();auto();},4500+Math.random()*6500);})();
+})();
+</script>
+</body>
+</html>
