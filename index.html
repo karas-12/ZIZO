@@ -106,6 +106,35 @@
   .discord-tag:hover{background:rgba(88,101,242,.25)}
   .discord-tag b{color:#fff;font-weight:500}
 
+
+  /* ===== مشغل الأغنية ===== */
+  .stack{width:min(560px,100%);display:flex;flex-direction:column;gap:14px}
+  .stack .card{width:100%}
+  .player{
+    display:flex;align-items:center;gap:16px;padding:14px 18px;direction:ltr;text-align:left;
+    background:var(--glass);border:1px solid var(--glass-border);border-radius:22px;
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 18px 50px rgba(0,0,0,.5);
+    opacity:0;transform:translateY(24px);transition:opacity .9s .55s ease,transform .9s .55s ease;
+  }
+  body.in .player{opacity:1;transform:none}
+  .cover{width:62px;height:62px;border-radius:16px;flex:none;display:grid;place-items:center;
+    background:rgba(241,210,122,.12);color:var(--gold);box-shadow:inset 0 0 18px rgba(241,210,122,.08)}
+  .cover svg{width:32px;height:32px;fill:currentColor}
+  .meta{flex:1;min-width:0}
+  .song{font-size:15px;font-weight:500;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12px;color:#e9dcb0;font-variant-numeric:tabular-nums}
+  .track{flex:1;height:14px;display:flex;align-items:center;cursor:pointer}
+  .track i{display:block;position:relative;width:100%;height:3px;background:rgba(241,210,122,.22);border-radius:3px}
+  .fill{position:absolute;inset:0 auto 0 0;width:0;background:var(--gold);border-radius:3px;box-shadow:0 0 8px rgba(241,210,122,.7)}
+  .ctrl{display:flex;align-items:center;gap:4px}
+  .ctrl button{background:none;border:0;color:var(--gold);cursor:pointer;width:34px;height:34px;display:grid;place-items:center;border-radius:50%;transition:background .2s}
+  .ctrl button:hover{background:rgba(241,210,122,.12)}
+  .ctrl button:focus-visible{outline:2px solid var(--gold)}
+  .ctrl svg{width:20px;height:20px;fill:currentColor}
+  .ctrl #play svg{width:26px;height:26px}
+  @media (max-width:520px){.cover{width:50px;height:50px}.ctrl button{width:30px;height:30px}#tot{display:none}}
+
   @media (max-width:520px){
     .name{font-size:38px}.socials{gap:12px}.socials a{width:50px;height:50px;padding:12px}
   }
@@ -129,6 +158,7 @@
 </div>
 
 <main>
+ <div class="stack">
   <section class="card">
     <img class="avatar" src="avatar.webp" alt="ZIZO">
     <h2 class="name">ZIZO</h2>
@@ -148,7 +178,24 @@
 
     <div class="discord-tag" id="dcTag" title="انسخ يوزر ديسكورد">Discord: <b>zizo_7897</b></div>
   </section>
+
+  <!-- مشغل الأغنية: الملف لازم اسمه music.mp3 | غيّر اسم الأغنية من هنا -->
+  <section class="player" aria-label="Music player">
+    <div class="cover"><svg viewBox="0 0 24 24"><path d="M12 3v10.6A4 4 0 1 0 14 17V7h4V3h-6z"/></svg></div>
+    <div class="meta">
+      <div class="song" id="song">music</div>
+      <div class="bar"><span id="cur">0:00</span><div class="track" id="track"><i><b class="fill" id="fill"></b></i></div><span id="tot">0:00</span></div>
+    </div>
+    <div class="ctrl">
+      <button id="prev" aria-label="Restart"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM9.5 12 18 18V6z"/></svg></button>
+      <button id="play" aria-label="Play / pause"><svg viewBox="0 0 24 24"><path id="pi" d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></button>
+      <button id="next" aria-label="Restart"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
+    </div>
+  </section>
+ </div>
 </main>
+
+<audio id="audio" src="music.mp3" loop preload="auto"></audio>
 
 <script>
 (function(){
@@ -159,6 +206,7 @@
   function enter(){
     welcome.classList.add('hide'); document.body.classList.add('in');
     bg.play().catch(function(){}); strike();
+    audio.play().then(function(){icon(true)}).catch(function(){icon(false)});
   }
   welcome.addEventListener('click',enter);
   welcome.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' ')enter();});
@@ -167,6 +215,28 @@
     var el=this.querySelector('b'),old=el.textContent;
     if(navigator.clipboard)navigator.clipboard.writeText('zizo_7897').catch(function(){});
     el.textContent='Copied';setTimeout(function(){el.textContent=old},1200);
+  });
+
+
+  // ===== مشغل الأغنية =====
+  var audio=document.getElementById('audio'),pi=document.getElementById('pi');
+  var PLAY='M8 5v14l11-7z',PAUSE='M6 4h4v16H6zM14 4h4v16h-4z';
+  function icon(p){pi.setAttribute('d',p?PAUSE:PLAY)}
+  function fmt(t){t=Math.floor(t||0);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0')}
+  icon(false);
+  document.getElementById('play').addEventListener('click',function(){
+    if(audio.paused){audio.play().then(function(){icon(true)}).catch(function(){})}else{audio.pause();icon(false)}
+  });
+  function restart(){audio.currentTime=0;audio.play().then(function(){icon(true)}).catch(function(){})}
+  document.getElementById('prev').addEventListener('click',restart);
+  document.getElementById('next').addEventListener('click',restart);
+  audio.addEventListener('loadedmetadata',function(){document.getElementById('tot').textContent=fmt(audio.duration)});
+  audio.addEventListener('timeupdate',function(){
+    document.getElementById('cur').textContent=fmt(audio.currentTime);
+    document.getElementById('fill').style.width=(audio.currentTime/(audio.duration||1)*100)+'%';
+  });
+  document.getElementById('track').addEventListener('click',function(e){
+    var r=this.getBoundingClientRect();if(audio.duration)audio.currentTime=(e.clientX-r.left)/r.width*audio.duration;
   });
 
   // ===== Canvas: شرارات دهبية + صواعق =====
